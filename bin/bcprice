@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+
+import os.path, sys, json, logging
+import pdb
+
+g_script_dirname = os.path.dirname(os.path.realpath(__file__))
+sys.path.append("/home/me/mypy")
+
+from optparse import OptionParser  # for versions <= 2.6
+
+from BCCPrice import lib # import termgraph as termgraph
+# import BCCPrice.lib
+import BCCPrice.utils as utils
+import BCCPrice.Price as bcprice
+
+import ConfigParser # for writeDefaultConfig(), fixme
+
+# default configuration
+g_configfile = os.path.expanduser("~") + "/.bcprice" + "/bcprice.ini"
+g_default_currency = "USD"
+g_default_timeframe = "24h"
+g_default_format = "24h: %(24h)s %(currency)s\n 7d: %(7d)s\n30d: %(30d)s"
+g_default_cacheexpiration = 300
+g_graph_width = 100
+
+def writeDefaultConfig(path):
+    print "Missing %s, creating ... \n" % path
+    config = ConfigParser.RawConfigParser()
+    config.add_section('bcprice')
+    config.set('bcprice', 'format', g_default_format)
+    config.set('bcprice', 'currency', g_default_currency)
+    config.set('bcprice', 'timeframe', g_default_timeframe)
+    config.set('bcprice', 'graph_width', g_graph_width)
+    config.add_section('network')
+    config.set('network', 'cache_expire', g_default_cacheexpiration)
+    with open(path, 'wb') as configfile:
+        config.write(configfile)
+
+def getArgs(args):
+    parser = OptionParser()
+
+    # output modes
+    parser.add_option("-g", "--graph", action="store_true", dest="graph", default=False,
+                     help="draw a simple graph")
+#   parser.add_option("-w", "--watch", action="store_true", dest="watch", default=False,
+#                     help="open watch mode")
+    parser.add_option("-s", "--short", action="store_true", dest="short", default=False,
+                      help="minimal output (useful for calling by scripts)")
+    parser.add_option("-j", "--json", action="store_true", dest="json", default=False,
+                      help="json output (combine with currency)")
+
+    # the knobs and dials
+    parser.add_option("-c", "--currency", dest="currency", 
+                      help="output currency")
+    parser.add_option("-t", "--timeframe", dest="timeframe", 
+                      help="price timeframe, either 24h | 7d | 30d")
+    parser.add_option("-f", "--format", dest="format", 
+                      help="output format")
+
+    parser.add_option("-d", "--debug",
+                      action="store_true", dest="debug", default=False,
+                      help="debug output")
+
+    return parser.parse_args(args)
+
+
+def main(args=None):
+
+    (options, args) = getArgs(args)
+
+    # usage statements not reached, so setup config file if missing (windicates first time use)
+    if not os.path.isfile(g_configfile):
+	     utils.Load.Filesystem.mkpath(os.path.dirname(g_configfile)) #
+	     writeDefaultConfig(g_configfile)
+
+    # init logging. fixme: could be cleaner. pull from the config as well.
+    if options.debug:
+       log = utils.Load().Logger("bccli", logging.DEBUG, configFile = g_configfile)
+    else:
+       log = utils.Load().Logger("bccli", logging.ERROR, configFile = g_configfile)
+
+    # get runtime options (either from args or config)
+    conf = log.getConfigObject()
+    currency = options.currency or conf.get("bcprice", "currency")
+    timeframe = options.timeframe or conf.get("bcprice", "timeframe")
+    format = options.format or conf.get("bcprice", "format")
+
+   # we're reading to create the app object and fetch the price data
+    prices = bcprice.Price(currency=currency, configFile = g_configfile)
+    currency_price = prices.getPricesForCurrency()
+   
+    # output modes
+    if options.graph:
+        graph_width = int(conf.get("bcprice", "graph_width"))
+        termgraph.TermGraph(width= graph_width, labels = prices.getIntervals(), data = prices.getDataPoints()).render()
+    elif options.json:
+        print json.dumps(currency_price)
+#   elif options.watch:
+#       print "TODO"
+    else:
+        print currency_price[timeframe] if options.short else format % ( currency_price )
+
+if __name__ == "__main__":
+    sys.exit(main())

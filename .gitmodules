@@ -1,0 +1,3 @@
+[submodule "lib/termgraph"]
+	path = lib/termgraph
+	url = https://github.com/brmorris/termgraph
