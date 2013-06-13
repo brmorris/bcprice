@@ -1,25 +1,22 @@
 #!/usr/bin/env python
 
 import os.path, sys, json, logging
-import pdb
 
+# pull in application modules
 g_script_dirname = os.path.dirname(os.path.realpath(__file__))
-sys.path.append("/home/me/mypy")
-
-from optparse import OptionParser  # for versions <= 2.6
-
-from BCCPrice import lib # import termgraph as termgraph
-# import BCCPrice.lib
+sys.path.append("%s/../lib:%s/../lib/termgraph" % ( g_script_dirname,  g_script_dirname ))
+import termgraph.termgraph as termgraph
 import BCCPrice.utils as utils
 import BCCPrice.Price as bcprice
 
 import ConfigParser # for writeDefaultConfig(), fixme
+from optparse import OptionParser  # for versions <= 2.6
 
 # default configuration
 g_configfile = os.path.expanduser("~") + "/.bcprice" + "/bcprice.ini"
 g_default_currency = "USD"
 g_default_timeframe = "24h"
-g_default_format = "24h: %(24h)s %(currency)s\n 7d: %(7d)s\n30d: %(30d)s"
+g_default_format = "24h: %(24h)s %(currency)s\n  7d: %(7d)s\n30d: %(30d)s"
 g_default_cacheexpiration = 300
 g_graph_width = 100
 
@@ -55,7 +52,7 @@ def getArgs(args):
     parser.add_option("-t", "--timeframe", dest="timeframe", 
                       help="price timeframe, either 24h | 7d | 30d")
     parser.add_option("-f", "--format", dest="format", 
-                      help="output format")
+                      help="specify output format using tokens: (%24h)s (%7d)s (%30d)s (%currency)s")
 
     parser.add_option("-d", "--debug",
                       action="store_true", dest="debug", default=False,

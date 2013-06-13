@@ -31,7 +31,7 @@ class Load(UtilsBase):
             return self.config
 
     class Logger(Config):
-        def __init__(self, namespace="main", level=logging.DEBUG, configFile= None):
+        def __init__(self, namespace="main", level=logging.ERROR, configFile= None):
             super( Load.Logger, self).__init__(configFile=configFile)
             self.logger = logging.getLogger(namespace)
             self.logger.setLevel(level)
